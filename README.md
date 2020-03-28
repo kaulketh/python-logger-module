@@ -7,7 +7,7 @@ ___
 * logs level ERROR into **logs/error.log**
 
 #### Usage
-* Copy/clone into project root.
+* Copy/clone _**logger**_ into project root.
 * Adapt _shebang_ to the Python version used
 * `import LOGGGER` into Python files/packages/modules
 * Feel free to change!
