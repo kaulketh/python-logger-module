@@ -1,3 +1,4 @@
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/kaulketh/python-logger-module?color=red)
 # python-logger-module
 ###### preconfigured logger module for python projects
 ___
