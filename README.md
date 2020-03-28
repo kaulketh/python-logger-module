@@ -1,5 +1,5 @@
 # python-logger-module
-###### preconfigured logger module for python
+###### preconfigured logger module for python projects
 ___
 * creates folder **logs** in project root (if not exists)
 * shows level DEBUG in terminal/console (_stdout_)
