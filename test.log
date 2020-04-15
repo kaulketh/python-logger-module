@@ -1,0 +1,8 @@
+test1_logging (__main__.LoggingTestCase) ... ok
+test2_file_creation (__main__.LoggingTestCase) ... ok
+test3_file_content (__main__.LoggingTestCase) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.011s
+
+OK

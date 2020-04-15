@@ -4,6 +4,6 @@
 __author___ = "Thomas Kaulke"
 __email__ = "kaulketh@gmail.com"
 
-from .logger import get_logger
+from .logger import PreconfLogger
 
-LOGGER = get_logger()
+LOGGER = PreconfLogger().get_instance()

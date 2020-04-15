@@ -4,19 +4,19 @@
 __author___ = "Thomas Kaulke"
 __email__ = "kaulketh@gmail.com"
 
+import sys
 import unittest
-
-import logger
 
 
 class LoggingTestCase(unittest.TestCase):
-    from logger import LOGGER
-    TEST_LOG_FOLDER = logger.logger.log_folder
-    TEST_INFO_LOG = logger.logger.info_log_file
-    TEST_ERROR_LOG = logger.logger.error_log_file
+    from logger import PreconfLogger
+    TEST_LOG_FOLDER = PreconfLogger.LOG_FOLDER
+    TEST_INFO_LOG = PreconfLogger.INFO_LOG_FILE
+    TEST_ERROR_LOG = PreconfLogger.ERROR_LOG_FILE
 
     def test1_logging(self):
         import logging
+        from logger import LOGGER as TEST_LOG
         self.result = False
 
         self.debug = "DEBUG" == logging.getLevelName(logging.DEBUG)
@@ -28,14 +28,14 @@ class LoggingTestCase(unittest.TestCase):
         self.fatal = "CRITICAL" == logging.getLevelName(logging.FATAL)
         self.critical = "CRITICAL" == logging.getLevelName(logging.CRITICAL)
 
-        LoggingTestCase.LOGGER.debug(self.debug)
-        LoggingTestCase.LOGGER.info(self.info)
-        LoggingTestCase.LOGGER.warning(self.warning)
+        TEST_LOG.debug(self.debug)
+        TEST_LOG.info(self.info)
+        TEST_LOG.warning(self.warning)
         # deprecated, refer documentation
-        # LoggingTestCase.LOGGER.warn(self.warn)
-        LoggingTestCase.LOGGER.error(self.error)
-        LoggingTestCase.LOGGER.fatal(self.fatal)
-        LoggingTestCase.LOGGER.critical(self.critical)
+        # TEST_LOG.warn(self.warn)
+        TEST_LOG.error(self.error)
+        TEST_LOG.fatal(self.fatal)
+        TEST_LOG.critical(self.critical)
 
         self.result = \
             self.debug \
@@ -106,5 +106,12 @@ class LoggingTestCase(unittest.TestCase):
         self.assertEqual(True, self.result, "File content check NOK!")
 
 
+def main(out=sys.stderr, verbosity=2):
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromModule(sys.modules[__name__])
+    unittest.TextTestRunner(out, verbosity=verbosity).run(suite)
+
+
 if __name__ == '__main__':
-    unittest.main()
+    with open('test.log', 'w') as f:
+        main(out=f)
