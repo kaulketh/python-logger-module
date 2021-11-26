@@ -21,7 +21,7 @@ class Singleton(_SingletonMeta("SingletonMeta", (object,), {})):
 
 class _LoggerMeta(type, Singleton):
     NAME = "Logger"
-    FOLDER_PATH = "../log_files"
+    FOLDER_PATH = "../logs"
     ADDITIONAL_DEBUG_LOG = False
 
     THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
