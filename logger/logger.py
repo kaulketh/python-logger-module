@@ -1,102 +1,129 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-
-__author__ = "Thomas Kaulke"
-__email__ = "kaulketh@gmail.com"
-
 import errno
 import logging
+import logging.handlers
 import os
-from logging.config import fileConfig
+import sys
 
 
-class _Singleton(type):
-    """ A metaclass that creates a Singleton base class when called.
-        Works in Python 2 & 3
-        https://www.it-swarm.dev/de/python/ein-singleton-python-erstellen/972393601
-    """
+class _SingletonMeta(type):
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(_Singleton, cls).__call__(*args,
-                                                                  **kwargs)
+            cls._instances[cls] = super(_SingletonMeta, cls).__call__(*args,
+                                                                      **kwargs)
         return cls._instances[cls]
 
 
-class Singleton(_Singleton('SingletonMeta', (object,), {})):
-    """ Works in Python 2 & 3
-        https://www.it-swarm.dev/de/python/ein-singleton-python-erstellen/972393601
-    """
+class Singleton(_SingletonMeta("SingletonMeta", (object,), {})):
     pass
 
 
-class PreconfLogger(Singleton):
-    FOLDER = '../logs'
-    # runtime location
+class _LoggerMeta(type, Singleton):
+    NAME = "Logger"
+    FOLDER_PATH = "../log_files"
+    ADDITIONAL_DEBUG_LOG = False
+
     THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
-    # define log folder related to location
-    LOG_FOLDER = os.path.join(THIS_FOLDER, FOLDER)
-    # define ini and log file pathes
-    INI_FILE = 'debug.ini'
-    INFO_LOG_FILE = LOG_FOLDER + '/info.log'
-    ERROR_LOG_FILE = LOG_FOLDER + '/error.log'
+    """Runtime location"""
 
+    LOG_FOLDER = os.path.join(THIS_FOLDER, FOLDER_PATH)
+    """Defined log folder related to location"""
 
+    # define log files, names, formats
+    DEB_LOG = f"{LOG_FOLDER}/debug.log"
+    INF_LOG = f"{LOG_FOLDER}/info.log"
+    ERR_LOG = f"{LOG_FOLDER}/error.log"
+    MAX_BYTE = 1024 ** 1024  # 1MB
+    BACK_COUNT = 5
 
-    def __init__(self, name: str = __name__):
-        self.this_folder = PreconfLogger.THIS_FOLDER
-        self.log_folder = PreconfLogger.LOG_FOLDER
-        self.ini_file = PreconfLogger.INI_FILE
-        self.info_log_file = PreconfLogger.INFO_LOG_FILE
-        self.error_log_file =PreconfLogger.ERROR_LOG_FILE
+    DATE_FMT = "%Y-%m-%d %H:%M:%S"
+    INF_FMT = "%(asctime)s %(levelname)s %(name)s " \
+              "[%(pathname)s %(funcName)s(lnr.%(lineno)s)] %(message)s"
+    ERR_FMT = "%(asctime)s %(levelname)s %(name)s " \
+              "[%(pathname)s %(funcName)s(lnr.%(lineno)s)] " \
+              "[thread: %(threadName)s] %(message)s"
+    DEBUG_FMT = "%(asctime)s %(levelname)s %(name)s " \
+                "%(pathname)s %(funcName)s(lnr.%(lineno)s) %(message)s"
+
+    def __init__(cls, *args, **kwargs):
+        super(_LoggerMeta, cls).__init__(*args, **kwargs)
+        cls.__name = _LoggerMeta.NAME
+        cls.__debug_log = _LoggerMeta.ADDITIONAL_DEBUG_LOG
+        cls.__this_folder = _LoggerMeta.THIS_FOLDER
+        cls.__log_folder = _LoggerMeta.LOG_FOLDER
+        cls.__deb_log_file = _LoggerMeta.DEB_LOG
+        cls.__inf_log_file = _LoggerMeta.INF_LOG
+        cls.__err_log_file = _LoggerMeta.ERR_LOG
 
         # check if exists or create log folder
         try:
-            os.makedirs(self.log_folder, exist_ok=True)  # Python > 3.2
+            os.makedirs(cls.__log_folder, exist_ok=True)  # Python > 3.2
         except TypeError:
             try:
-                os.makedirs(self.log_folder)
+                os.makedirs(cls.__log_folder)
             except OSError as exc:  # Python > 2.5
                 if exc.errno == errno.EEXIST and os.path.isdir(
-                        self.log_folder):
+                        cls.__log_folder):
                     pass
                 else:
                     raise
 
-        # setup configuration
-        self.config_file = os.path.join(self.this_folder, self.ini_file)
-        fileConfig(self.config_file, disable_existing_loggers=True)
+        # setup logger base configuration for console output
+        logging.basicConfig(
+            level=logging.DEBUG,
+            stream=sys.stdout,
+            datefmt=_LoggerMeta.DATE_FMT,
+            format=_LoggerMeta.DEBUG_FMT)
+        # create file handlers
+        cls.__handler_info = logging.handlers.RotatingFileHandler(
+            os.path.join(cls.__this_folder, cls.__inf_log_file),
+            maxBytes=_LoggerMeta.MAX_BYTE, backupCount=_LoggerMeta.BACK_COUNT)
+        cls.__handler_error = logging.handlers.RotatingFileHandler(
+            os.path.join(cls.__this_folder, cls.__err_log_file),
+            maxBytes=_LoggerMeta.MAX_BYTE, backupCount=_LoggerMeta.BACK_COUNT)
 
-        # create handlers
-        self.handler_info = logging.FileHandler(
-            os.path.join(self.this_folder, self.info_log_file))
-        self.handler_error = logging.FileHandler(
-            os.path.join(self.this_folder, self.error_log_file))
-        # set levels
-        self.handler_info.setLevel(logging.INFO)
-        self.handler_error.setLevel(logging.ERROR)
+        # set handler log levels
+        cls.__handler_info.setLevel(logging.INFO)
+        cls.__handler_error.setLevel(logging.ERROR)
 
-        # create formatters and add to handlers
-        self.format_info = \
-            logging.Formatter('%(asctime)s  %(levelname)s '
-                              '[ %(module)s.%(funcName)s  linenr.%(lineno)s ] '
-                              '%(message).180s', datefmt='%Y-%m-%d %H:%M:%S')
-        self.format_error = \
-            logging.Formatter(
-                '%(asctime)s  %(levelname)s '
-                '[ %(module)s.%(funcName)s  linenr.%(lineno)s ] '
-                '[ thread: %(threadName)s ] %(message)s')
-        self.handler_info.setFormatter(self.format_info)
-        self.handler_error.setFormatter(self.format_error)
+        # create formatters and setup handlers
+        cls.__format_info = \
+            logging.Formatter(_LoggerMeta.INF_FMT,
+                              datefmt=_LoggerMeta.DATE_FMT)
+        cls.__format_error = \
+            logging.Formatter(_LoggerMeta.ERR_FMT,
+                              datefmt=_LoggerMeta.DATE_FMT)
 
-        # add handler
-        self.logger = logging.getLogger(name)
-        self.logger.addHandler(self.handler_info)
-        self.logger.addHandler(self.handler_error)
+        cls.__handler_info.setFormatter(cls.__format_info)
+        cls.__handler_error.setFormatter(cls.__format_error)
 
-    def get_instance(self):
-        return self.logger
+        # instantiate logger and add handler
+        cls.__log_instance = logging.getLogger(cls.__name)
+
+        cls.__log_instance.addHandler(cls.__handler_info)
+        cls.__log_instance.addHandler(cls.__handler_error)
+
+        # if debug.log enabled
+        if cls.__debug_log:
+            cls.__handler_debug = logging.handlers.RotatingFileHandler(
+                os.path.join(cls.__this_folder, cls.__deb_log_file),
+                maxBytes=_LoggerMeta.MAX_BYTE,
+                backupCount=_LoggerMeta.BACK_COUNT)
+            cls.__handler_debug.setLevel(logging.DEBUG)
+            cls.__format_debug = \
+                logging.Formatter(_LoggerMeta.DEBUG_FMT,
+                                  datefmt=_LoggerMeta.DATE_FMT)
+            cls.__handler_debug.setFormatter(cls.__format_debug)
+            cls.__log_instance.addHandler(cls.__handler_debug)
+
+    @property
+    def instance(cls):
+        return cls.__log_instance
+
+
+class PreconfiguredLogger(metaclass=_LoggerMeta):
+    pass
 
 
 if __name__ == '__main__':

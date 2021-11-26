@@ -1,9 +1,4 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
+from .logger import PreconfiguredLogger
 
-__author__ = "Thomas Kaulke"
-__email__ = "kaulketh@gmail.com"
 
-from .logger import PreconfLogger
-
-LOGGER = PreconfLogger().get_instance()
+log = PreconfiguredLogger.instance
